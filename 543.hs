@@ -1,43 +1,9 @@
 import System.Environment
+import qualified Data.Set as Set
 import Data.List
+import Debug.Trace
 
-
-main :: IO ()
-main = print $ s 100
-
-fibs = unfoldr (\(a, b) -> Just (a, (b, a+b))) (0,1)
-
-
--- S
-
-
-s :: Int -> Int
-s n = s_list !! n
-
-s_list :: [Int]
-s_list = map (memo_s s) [0..]
-
-memo_s :: (Int -> Int) -> Int -> Int
-memo_s ms 0 = 0
-memo_s ms n =
-  sum [ (p n k) | k <- [1..(n `div` 2)] ] + ms (n - 1)
-
-
--- P
-
-
-p :: Int -> Int -> Int
-p n k =
-  let
-    perms =
-      cartesianish n (k - 1) $ (map (\n -> [n]) (possiblePrimes n))
-  in
-    if elem n (map sum perms) then 1 else 0
-
-cartesianish :: Int -> Int -> [[Int]] -> [[Int]]
-cartesianish n 0 arr = arr
-cartesianish n k arr =
-  cartesianish n (k - 1) [ p : a | p <- possiblePrimes n, a <- arr, (head a) >= p ]
+main = print $ s 1000
 
 primes :: [Int]
 primes = sieve [2..]
@@ -45,6 +11,34 @@ primes = sieve [2..]
     sieve (p:xs) = p : sieve [x | x <- xs, x `mod` p > 0]
 
 
-possiblePrimes :: Int -> [Int]
-possiblePrimes k =
-  takeWhile ((>=) k) primes
+-- fibs = unfoldr (\(a, b) -> Just (a, (b, a+b))) (0,1)
+
+s :: Int -> Int
+s n =
+  let
+    s' :: Int -> Int
+    s' = (map s'' [0 ..] !!)
+      where
+        s'' 0 = 0
+        s'' n = sum [ (p k n) | k <- [1..(n `div` 2)] ] + s' (n - 1)
+
+
+    p :: Int -> Int -> Int
+    -- p k n  | trace ("p " ++ show k) False = undefined
+    p k n  = if elem n (allSums k) then 1 else 0
+
+
+    allSums :: Int -> [Int]
+    allSums = (map sums [0 .. ] !!)
+       where
+         sums :: Int -> [Int]
+         -- sums k | trace ("sums " ++ show k ) False = undefined
+         sums 1 = possiblePrimes
+         sums k = nub [ x + a | x <- possiblePrimes,
+                                a <- (allSums (k - 1)),
+                                x + a <= n
+                      ]
+
+    possiblePrimes :: [Int]
+    possiblePrimes = takeWhile (n >=) primes
+  in s' n
